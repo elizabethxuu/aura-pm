@@ -29,8 +29,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          git fetch --no-tags origin "$BASE_REF"
-          git fetch --no-tags origin "+refs/pull/$PR_NUMBER/head:refs/remotes/origin/aura-pr-$PR_NUMBER"
+          git fetch --no-tags origin "$BASE_REF" "+refs/pull/$PR_NUMBER/head"
 
       - name: Run Aura PM review
         id: run_aura
@@ -77,12 +76,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+      pull-requests: write
     steps:
       - name: Post Aura PM review
         uses: actions/github-script@v7
         env:
           AURA_REVIEW: ${{ needs.review.outputs.final_message }}
         with:
+          github-token: ${{ github.token }}
           script: |
             const review = process.env.AURA_REVIEW;
             if (!review || !review.trim()) {
