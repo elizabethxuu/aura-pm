@@ -78,7 +78,7 @@ jobs:
 
   comment:
     needs: review
-    if: needs.review.outputs.final_message != ''
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -92,14 +92,20 @@ jobs:
           github-token: ${{ github.token }}
           script: |
             const review = process.env.AURA_REVIEW;
-            if (!review || !review.trim()) {
-              core.setFailed("Aura PM returned an empty review.");
-              return;
-            }
+            const reviewResult = "${{ needs.review.result }}";
+            const body = review && review.trim() ? review : [
+              "# ✦ Aura PM Review — Unable to Complete",
+              "",
+              "Aura PM did not produce a review. The review job ended with status: **" + reviewResult + "**.",
+              "",
+              "Check the Run Aura PM review step in GitHub Actions for the underlying error. If the logs report 401 Unauthorized or Incorrect API key provided, replace the OPENAI_API_KEY repository secret with a valid OpenAI API key, then rerun this workflow.",
+              "",
+              "No code review was completed. This is not an approval or a release recommendation."
+            ].join("\n");
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: review,
+              body,
             });
